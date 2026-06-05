@@ -21,7 +21,6 @@ interface GameState {
   coinsPerSecond: number;
   levels: Record<ShopId, number>;
   muted: boolean;
-  musicStarted: boolean;
 }
 
 const SHOP_ITEMS: ShopItem[] = [
@@ -71,7 +70,6 @@ const state: GameState = {
     factory: 0,
   },
   muted: false,
-  musicStarted: false,
 };
 
 type SoundPlayer = Pick<Howl, 'play' | 'mute'>;
@@ -97,14 +95,6 @@ let lastTick = performance.now();
 app.innerHTML = `
   <main class="shell">
     <section class="hero card">
-      <div class="hero__scene" aria-hidden="true">
-        <picture class="hero__picture">
-          <source srcset="${heroMobileUrl}" media="(max-width: 720px)">
-          <img src="${heroDesktopUrl}" alt="" loading="eager" decoding="async">
-        </picture>
-        <img class="hero__ambient" src="${heroAmbientUrl}" alt="" loading="eager" decoding="async">
-      </div>
-
       <div class="hero__content">
         <div class="title-block">
           <p class="eyebrow">Pixel Clicker</p>
@@ -223,6 +213,10 @@ ui.muteButton.addEventListener('click', () => {
   syncMuteButton();
 });
 
+window.addEventListener('pointerdown', unlockAudio, { once: true, capture: true });
+window.addEventListener('keydown', unlockAudio, { once: true, capture: true });
+window.addEventListener('touchstart', unlockAudio, { once: true, capture: true, passive: true });
+
 ui.shopList.addEventListener('click', (event) => {
   const target = event.target as HTMLElement | null;
   const button = target?.closest<HTMLButtonElement>('[data-buy]');
@@ -326,7 +320,14 @@ function syncStatsOnly(): void {
 }
 
 function syncMuteButton(): void {
-  const label = state.muted ? 'Music: Off' : 'Music: On';
+  let label = 'Music: On';
+
+  if (state.muted) {
+    label = 'Music: Off';
+  } else if (!music.playing()) {
+    label = 'Music: Tap to start';
+  }
+
   ui.muteButton.textContent = label;
   ui.muteButton.setAttribute('aria-pressed', String(state.muted));
 }
@@ -366,12 +367,12 @@ function syncShop(): void {
 }
 
 function unlockAudio(): void {
-  if (!state.musicStarted) {
+  if (!music.playing()) {
     music.play();
-    state.musicStarted = true;
   }
 
   applyMute();
+  syncMuteButton();
 }
 
 function applyMute(): void {
