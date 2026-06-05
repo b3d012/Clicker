@@ -7,7 +7,7 @@ export default defineConfig({
   base: './',
   plugins: [react(), vue()],
   build: {
-    outDir: 'dist',
+    outDir: 'docs',
     emptyOutDir: true,
     rollupOptions: {
       input: {
