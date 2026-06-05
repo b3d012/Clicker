@@ -80,6 +80,16 @@ if (!app) {
   throw new Error('App root not found.');
 }
 
+const heroDesktopUrl = new URL('./assets/pixel-scene/hero-desktop.png', import.meta.url).href;
+const heroMobileUrl = new URL('./assets/pixel-scene/hero-mobile.png', import.meta.url).href;
+const heroAmbientUrl = new URL('./assets/pixel-scene/hero-ambient.png', import.meta.url).href;
+const rootStyle = document.documentElement.style;
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+rootStyle.setProperty('--scene-hero-desktop', `url("${heroDesktopUrl}")`);
+rootStyle.setProperty('--scene-hero-mobile', `url("${heroMobileUrl}")`);
+rootStyle.setProperty('--scene-hero-ambient', `url("${heroAmbientUrl}")`);
+
 const music = new Howl({
   src: [createChiptuneLoopUrl()],
   loop: true,
@@ -103,31 +113,41 @@ let lastTick = performance.now();
 
 app.innerHTML = `
   <main class="shell">
-    <section class="topbar card">
-      <div class="title-block">
-        <p class="eyebrow">Pixel Clicker</p>
-        <h1>Make coins. Buy helpers. Keep it simple.</h1>
-        <p class="lede">
-          Tap the big coin on mobile or desktop, spend coins in the shop, and keep the
-          whole thing browser-based for GitHub Pages.
-        </p>
+    <section class="hero card">
+      <div class="hero__scene" aria-hidden="true">
+        <picture class="hero__picture">
+          <source srcset="${heroMobileUrl}" media="(max-width: 720px)">
+          <img src="${heroDesktopUrl}" alt="" loading="eager" decoding="async">
+        </picture>
+        <img class="hero__ambient" src="${heroAmbientUrl}" alt="" loading="eager" decoding="async">
       </div>
 
-      <div class="topbar-actions">
-        <button id="mute-button" class="button ghost" type="button" aria-pressed="false">
-          Music: On
-        </button>
-        <div class="stat-pill">
-          <span>Coins</span>
-          <strong id="coins-stat">0</strong>
+      <div class="hero__content">
+        <div class="title-block">
+          <p class="eyebrow">Pixel Clicker</p>
+          <h1>Make coins. Buy helpers. Keep it simple.</h1>
+          <p class="lede">
+            Tap the big coin on mobile or desktop, spend coins in the shop, and keep the
+            whole thing browser-based for GitHub Pages.
+          </p>
         </div>
-        <div class="stat-pill">
-          <span>Per click</span>
-          <strong id="click-stat">1</strong>
-        </div>
-        <div class="stat-pill">
-          <span>Per sec</span>
-          <strong id="cps-stat">0.0</strong>
+
+        <div class="topbar-actions">
+          <button id="mute-button" class="button ghost" type="button" aria-pressed="false">
+            Music: On
+          </button>
+          <div class="stat-pill">
+            <span>Coins</span>
+            <strong id="coins-stat">0</strong>
+          </div>
+          <div class="stat-pill">
+            <span>Per click</span>
+            <strong id="click-stat">1</strong>
+          </div>
+          <div class="stat-pill">
+            <span>Per sec</span>
+            <strong id="cps-stat">0.0</strong>
+          </div>
         </div>
       </div>
     </section>
@@ -221,6 +241,21 @@ ui.shopList.addEventListener('click', (event) => {
 syncUi();
 applyMute();
 requestAnimationFrame(tick);
+
+if (!prefersReducedMotion) {
+  window.addEventListener('pointermove', (event) => {
+    const x = (event.clientX / window.innerWidth - 0.5) * 100;
+    const y = (event.clientY / window.innerHeight - 0.5) * 100;
+
+    rootStyle.setProperty('--scene-pointer-x', `${x.toFixed(3)}%`);
+    rootStyle.setProperty('--scene-pointer-y', `${y.toFixed(3)}%`);
+  });
+
+  window.addEventListener('pointerleave', () => {
+    rootStyle.setProperty('--scene-pointer-x', '0%');
+    rootStyle.setProperty('--scene-pointer-y', '0%');
+  });
+}
 
 function tick(now: number): void {
   const deltaSeconds = Math.min(0.2, (now - lastTick) / 1000);
