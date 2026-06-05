@@ -74,6 +74,8 @@ const state: GameState = {
   musicStarted: false,
 };
 
+type SoundPlayer = Pick<Howl, 'play' | 'mute'>;
+
 const app = document.querySelector<HTMLDivElement>('#app');
 
 if (!app) {
@@ -89,25 +91,6 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 rootStyle.setProperty('--scene-hero-desktop', `url("${heroDesktopUrl}")`);
 rootStyle.setProperty('--scene-hero-mobile', `url("${heroMobileUrl}")`);
 rootStyle.setProperty('--scene-hero-ambient', `url("${heroAmbientUrl}")`);
-
-const music = new Howl({
-  src: [createChiptuneLoopUrl()],
-  loop: true,
-  volume: 0.32,
-  preload: true,
-});
-
-const clickSound = new Howl({
-  src: [createToneUrl({ frequency: 880, durationMs: 70, volume: 0.22 })],
-  volume: 1,
-  preload: true,
-});
-
-const buySound = new Howl({
-  src: [createToneUrl({ frequency: 523.25, durationMs: 90, volume: 0.18 })],
-  volume: 1,
-  preload: true,
-});
 
 let lastTick = performance.now();
 
@@ -189,6 +172,25 @@ app.innerHTML = `
     </section>
   </main>
 `;
+
+const music = createSound(() => new Howl({
+  src: [createChiptuneLoopUrl()],
+  loop: true,
+  volume: 0.32,
+  preload: true,
+}));
+
+const clickSound = createSound(() => new Howl({
+  src: [createToneUrl({ frequency: 880, durationMs: 70, volume: 0.22 })],
+  volume: 1,
+  preload: true,
+}));
+
+const buySound = createSound(() => new Howl({
+  src: [createToneUrl({ frequency: 523.25, durationMs: 90, volume: 0.18 })],
+  volume: 1,
+  preload: true,
+}));
 
 const ui = {
   coinButton: document.querySelector<HTMLButtonElement>('#coin-button'),
@@ -382,4 +384,21 @@ function flashCoin(): void {
   ui.coinButton.classList.remove('coin-button--flash');
   void ui.coinButton.offsetWidth;
   ui.coinButton.classList.add('coin-button--flash');
+}
+
+function createSound(factory: () => Howl): SoundPlayer {
+  try {
+    return factory();
+  } catch (error) {
+    console.warn('Audio failed to initialize; continuing without sound.', error);
+
+    return {
+      play() {
+        return 0;
+      },
+      mute() {
+        return undefined;
+      },
+    };
+  }
 }
